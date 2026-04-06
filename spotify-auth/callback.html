@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spotify Auth — iCUE Widget Setup</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0a0a0a;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      background: #161616;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      padding: 40px;
+      width: 100%;
+      max-width: 520px;
+      text-align: center;
+    }
+
+    .icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+    }
+
+    .icon-loading { background: #1a1a1a; border: 2px solid #2a2a2a; }
+    .icon-success { background: #0a2a14; border: 2px solid #1DB954; }
+    .icon-error   { background: #2a0a0a; border: 2px solid #c0392b; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { animation: spin 1s linear infinite; }
+
+    h2 {
+      font-size: 20px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .sub {
+      font-size: 14px;
+      color: #777;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+
+    .token-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #1DB954;
+      margin-bottom: 10px;
+    }
+
+    .token-box {
+      background: #0d0d0d;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 14px;
+      font-family: 'SF Mono', 'Consolas', monospace;
+      font-size: 12px;
+      color: #aaa;
+      word-break: break-all;
+      text-align: left;
+      margin-bottom: 16px;
+      line-height: 1.6;
+    }
+
+    .copy-btn {
+      width: 100%;
+      padding: 12px;
+      background: #1DB954;
+      color: #000;
+      font-size: 15px;
+      font-weight: 700;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      letter-spacing: 0.02em;
+      transition: background 0.15s, transform 0.1s;
+      margin-bottom: 16px;
+    }
+
+    .copy-btn:hover  { background: #1ed760; }
+    .copy-btn:active { transform: scale(0.98); }
+    .copy-btn.copied { background: #148a3a; }
+
+    .next-steps {
+      background: #0d0d0d;
+      border: 1px solid #222;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: left;
+    }
+
+    .next-steps p {
+      font-size: 13px;
+      color: #888;
+      line-height: 1.6;
+    }
+
+    .next-steps strong { color: #ccc; }
+
+    .retry-btn {
+      background: none;
+      border: 1px solid #333;
+      border-radius: 6px;
+      color: #888;
+      padding: 10px 20px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+      margin-top: 16px;
+    }
+
+    .retry-btn:hover { border-color: #1DB954; color: #1DB954; }
+
+    /* State visibility */
+    #state-loading, #state-success, #state-error { display: none; }
+  </style>
+</head>
+<body>
+<div class="card">
+
+  <!-- Loading -->
+  <div id="state-loading">
+    <div class="icon icon-loading">
+      <svg class="spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2.5">
+        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+      </svg>
+    </div>
+    <h2>Connecting&hellip;</h2>
+    <p class="sub">Exchanging your authorization code with Spotify.</p>
+  </div>
+
+  <!-- Success -->
+  <div id="state-success">
+    <div class="icon icon-success">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1DB954" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+    </div>
+    <h2>Connected!</h2>
+    <p class="sub">Copy this token and paste it into your iCUE widget settings.</p>
+    <div class="token-label">Refresh Token</div>
+    <div class="token-box" id="token-display"></div>
+    <button class="copy-btn" id="copy-btn" onclick="copyToken()">Copy Token</button>
+    <div class="next-steps">
+      <p>In iCUE, open the widget settings and paste the token into the <strong>Refresh Token</strong> field. You only need to do this once.</p>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div id="state-error">
+    <div class="icon icon-error">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#c0392b" stroke-width="2.5" stroke-linecap="round">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </div>
+    <h2>Something went wrong</h2>
+    <p class="sub" id="error-detail"></p>
+    <button class="retry-btn" onclick="history.back()">&#8592; Back to setup</button>
+  </div>
+
+</div>
+
+<script>
+  var _token = '';
+
+  function show(state) {
+    ['loading', 'success', 'error'].forEach(function(s) {
+      document.getElementById('state-' + s).style.display = (s === state) ? '' : 'none';
+    });
+  }
+
+  function fail(msg) {
+    document.getElementById('error-detail').textContent = msg;
+    show('error');
+  }
+
+  function copyToken() {
+    var btn = document.getElementById('copy-btn');
+    navigator.clipboard.writeText(_token).then(function() {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(function() {
+        btn.textContent = 'Copy Token';
+        btn.classList.remove('copied');
+      }, 2500);
+    }).catch(function() {
+      /* Fallback: select the token text */
+      var range = document.createRange();
+      range.selectNodeContents(document.getElementById('token-display'));
+      window.getSelection().removeAllRanges();
+      window.getSelection().addRange(range);
+    });
+  }
+
+  (function init() {
+    show('loading');
+
+    var params      = new URLSearchParams(window.location.search);
+    var code        = params.get('code');
+    var returnState = params.get('state');
+    var errorParam  = params.get('error');
+
+    /* Spotify returned an error (e.g. user denied access) */
+    if (errorParam) {
+      fail(errorParam === 'access_denied'
+        ? 'You declined the Spotify permissions. Go back and try again.'
+        : 'Spotify returned an error: ' + errorParam);
+      return;
+    }
+
+    if (!code) {
+      fail('No authorization code in the URL. Please start from the setup page.');
+      return;
+    }
+
+    var verifier    = sessionStorage.getItem('snp_verifier');
+    var savedState  = sessionStorage.getItem('snp_state');
+    var clientId    = sessionStorage.getItem('snp_client_id');
+    var redirectUri = sessionStorage.getItem('snp_redirect_uri');
+
+    if (!verifier || !clientId || !redirectUri) {
+      fail('Session data is missing — this can happen if you opened the callback URL directly or your browser cleared session storage. Please start from the setup page.');
+      return;
+    }
+
+    if (returnState !== savedState) {
+      fail('State mismatch — possible security issue. Please start from the setup page to generate a fresh link.');
+      return;
+    }
+
+    /* Clean up session storage */
+    sessionStorage.removeItem('snp_verifier');
+    sessionStorage.removeItem('snp_state');
+    sessionStorage.removeItem('snp_client_id');
+    sessionStorage.removeItem('snp_redirect_uri');
+
+    /* Exchange the code for tokens */
+    fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'grant_type=authorization_code'
+        + '&code='          + encodeURIComponent(code)
+        + '&redirect_uri='  + encodeURIComponent(redirectUri)
+        + '&client_id='     + encodeURIComponent(clientId)
+        + '&code_verifier=' + encodeURIComponent(verifier)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.refresh_token) {
+        _token = d.refresh_token;
+        document.getElementById('token-display').textContent = d.refresh_token;
+        show('success');
+      } else {
+        fail('Spotify did not return a refresh token. '
+          + (d.error_description || d.error || JSON.stringify(d))
+          + '\n\nMake sure the Redirect URI in your Spotify app settings exactly matches: '
+          + redirectUri);
+      }
+    })
+    .catch(function(e) {
+      fail('Network error: ' + e.message + '. Check your connection and try again.');
+    });
+  })();
+</script>
+</body>
+</html>
