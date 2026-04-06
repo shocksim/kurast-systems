@@ -131,8 +131,7 @@
 
     .retry-btn:hover { border-color: #1DB954; color: #1DB954; }
 
-    /* State visibility */
-    #state-loading, #state-success, #state-error { display: none; }
+    /* States hidden via inline style; JS uses display:block to reveal */
   </style>
 </head>
 <body>
@@ -185,7 +184,7 @@
 
   function show(state) {
     ['loading', 'success', 'error'].forEach(function(s) {
-      document.getElementById('state-' + s).style.display = (s === state) ? '' : 'none';
+      document.getElementById('state-' + s).style.display = (s === state) ? 'block' : 'none';
     });
   }
 
